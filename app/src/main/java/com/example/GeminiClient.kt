@@ -18,7 +18,13 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
 sealed class GeminiResult {
-    data class Success(val text: String) : GeminiResult()
+    data class Success(
+        val text: String,
+        val usedModelId: String,
+        val fallbackNotice: String? = null,
+        val discoveredModels: List<String>? = null
+    ) : GeminiResult()
+
     data class Error(val message: String) : GeminiResult()
 }
 
@@ -39,13 +45,13 @@ class GeminiClient {
         .build()
 
     /**
-     * Mengambil daftar model Gemini yang tersedia dan mendukung generateContent
-     * langsung dari REST API /v1beta/models menggunakan API Key terkonfigurasi.
+     * Mengambil daftar model Gemini yang benar-benar tersedia & mendukung generateContent
+     * langsung dari REST API /v1beta/models menggunakan API Key pengguna.
      */
     suspend fun fetchAvailableModels(apiKey: String): ModelsResult = withContext(Dispatchers.IO) {
         val cleanApiKey = apiKey.trim()
         if (cleanApiKey.isEmpty()) {
-            return@withContext ModelsResult.Error("GEMINI_API_KEY belum diatur di panel Secrets AI Studio.")
+            return@withContext ModelsResult.Error("Gemini API Key masih kosong.")
         }
 
         val encodedKey = URLEncoder.encode(cleanApiKey, StandardCharsets.UTF_8.name())
@@ -96,7 +102,7 @@ class GeminiClient {
 
         if (cleanApiKey.isEmpty()) {
             return@withContext GeminiResult.Error(
-                "GEMINI_API_KEY belum dikonfigurasi.\n\nMasukkan API Key Anda di panel Secrets AI Studio lalu bangun ulang aplikasi."
+                "Gemini API Key masih kosong.\n\nBuka aplikasi Floating Gemini AI lalu masukkan Gemini API Key Anda."
             )
         }
 
@@ -111,47 +117,150 @@ class GeminiClient {
         }
 
         val normalizedModel = cleanModelId.removePrefix("models/")
-        val encodedModel = URLEncoder.encode(normalizedModel, StandardCharsets.UTF_8.name())
-        val encodedKey = URLEncoder.encode(cleanApiKey, StandardCharsets.UTF_8.name())
+        val payloadJson = buildRequestPayload(systemInstruction.trim(), cleanPrompt)
+
+        when (val firstAttempt = executeGenerateCall(cleanApiKey, normalizedModel, payloadJson)) {
+            is CallOutcome.Success -> {
+                parseSuccessResponse(firstAttempt.rawBody, usedModelId = normalizedModel)
+            }
+
+            is CallOutcome.HttpError -> {
+                if (firstAttempt.code == 404) {
+                    handleNotFoundWithAutoFallback(
+                        apiKey = cleanApiKey,
+                        requestedModel = normalizedModel,
+                        payloadJson = payloadJson,
+                        originalDetail = firstAttempt.detail
+                    )
+                } else {
+                    GeminiResult.Error(
+                        formatHttpError(firstAttempt.code, normalizedModel, firstAttempt.detail)
+                    )
+                }
+            }
+
+            is CallOutcome.NetworkError -> {
+                GeminiResult.Error(firstAttempt.message)
+            }
+        }
+    }
+
+    /**
+     * Saat model yang diminta mengembalikan 404 (misalnya salah ketik seperti "gemini-3-5-flash"
+     * atau model belum tersedia di v1beta), otomatis panggil ListModels untuk menemukan model
+     * valid yang cocok atau beralih ke model Flash terbaik yang tersedia pada API Key tersebut.
+     */
+    private suspend fun handleNotFoundWithAutoFallback(
+        apiKey: String,
+        requestedModel: String,
+        payloadJson: String,
+        originalDetail: String
+    ): GeminiResult {
+        val modelsResult = fetchAvailableModels(apiKey)
+        if (modelsResult !is ModelsResult.Success || modelsResult.models.isEmpty()) {
+            return GeminiResult.Error(formatHttpError(404, requestedModel, originalDetail))
+        }
+
+        val available = modelsResult.models
+        val fallbackModel = resolveBestFallbackModel(requestedModel, available)
+            ?: return GeminiResult.Error(formatHttpError(404, requestedModel, originalDetail))
+
+        return when (val retry = executeGenerateCall(apiKey, fallbackModel, payloadJson)) {
+            is CallOutcome.Success -> {
+                val notice =
+                    "Model \"$requestedModel\" tidak tersedia di API Key ini → otomatis beralih ke \"$fallbackModel\"."
+                parseSuccessResponse(
+                    rawBody = retry.rawBody,
+                    usedModelId = fallbackModel,
+                    fallbackNotice = notice,
+                    discoveredModels = available
+                )
+            }
+
+            is CallOutcome.HttpError -> {
+                GeminiResult.Error(
+                    formatHttpError(retry.code, fallbackModel, retry.detail)
+                )
+            }
+
+            is CallOutcome.NetworkError -> {
+                GeminiResult.Error(retry.message)
+            }
+        }
+    }
+
+    private fun resolveBestFallbackModel(requested: String, available: List<String>): String? {
+        if (available.isEmpty()) return null
+        val reqCanonical = requested.lowercase().replace("-", ".")
+
+        // 1. Cari kecocokan normalisasi titik/tanda hubung (mis. gemini-2-5-flash -> gemini-2.5-flash)
+        available.firstOrNull { it.lowercase().replace("-", ".") == reqCanonical }?.let { return it }
+
+        // 2. Cari kecocokan parsial nama (mis. "hydrogen" -> "gemini-4-hydrogen" jika tersedia)
+        val reqLower = requested.lowercase()
+        available.firstOrNull { it.lowercase().contains(reqLower) }?.let { return it }
+
+        // 3. Fallback ke model Flash terbaik yang benar-benar tersedia di ListModels
+        val preferredOrder = listOf(
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash",
+            "gemini-2.5-pro",
+            "gemini-2.0-flash-lite"
+        )
+        for (preferred in preferredOrder) {
+            if (available.contains(preferred)) return preferred
+        }
+
+        return available.firstOrNull { it.contains("flash", ignoreCase = true) } ?: available.first()
+    }
+
+    private sealed class CallOutcome {
+        data class Success(val rawBody: String) : CallOutcome()
+        data class HttpError(val code: Int, val detail: String) : CallOutcome()
+        data class NetworkError(val message: String) : CallOutcome()
+    }
+
+    private fun executeGenerateCall(
+        apiKey: String,
+        modelId: String,
+        payloadJson: String
+    ): CallOutcome {
+        val encodedModel = URLEncoder.encode(modelId, StandardCharsets.UTF_8.name())
+        val encodedKey = URLEncoder.encode(apiKey, StandardCharsets.UTF_8.name())
         val url =
             "https://generativelanguage.googleapis.com/v1beta/models/$encodedModel:generateContent?key=$encodedKey"
 
-        val payloadJson = buildRequestPayload(systemInstruction.trim(), cleanPrompt)
         val requestBody = payloadJson.toRequestBody(jsonMediaType)
-
         val request = Request.Builder()
             .url(url)
             .post(requestBody)
             .addHeader("Content-Type", "application/json")
             .build()
 
-        try {
+        return try {
             httpClient.newCall(request).execute().use { response ->
                 val rawBody = response.body?.string().orEmpty()
-
                 if (!response.isSuccessful) {
-                    val apiErrorDetail = parseApiErrorMessage(rawBody)
-                    return@withContext GeminiResult.Error(
-                        formatHttpError(response.code, normalizedModel, apiErrorDetail)
-                    )
+                    CallOutcome.HttpError(response.code, parseApiErrorMessage(rawBody))
+                } else {
+                    CallOutcome.Success(rawBody)
                 }
-
-                parseSuccessResponse(rawBody)
             }
         } catch (_: UnknownHostException) {
-            GeminiResult.Error(
+            CallOutcome.NetworkError(
                 "Tidak ada koneksi internet.\n\nPeriksa Wi-Fi atau data seluler Anda lalu coba lagi."
             )
         } catch (_: SocketTimeoutException) {
-            GeminiResult.Error(
+            CallOutcome.NetworkError(
                 "Koneksi timeout saat menghubungi server Gemini.\n\nCoba kirim ulang beberapa saat lagi."
             )
         } catch (e: IOException) {
-            GeminiResult.Error(
+            CallOutcome.NetworkError(
                 "Gagal terhubung ke jaringan: ${e.localizedMessage ?: "Kesalahan I/O"}."
             )
         } catch (e: Exception) {
-            GeminiResult.Error(
+            CallOutcome.NetworkError(
                 "Terjadi kesalahan tak terduga: ${e.localizedMessage ?: e.javaClass.simpleName}."
             )
         }
@@ -183,7 +292,6 @@ class GeminiClient {
             }
         }
 
-        // Prioritaskan model Gemini terbaru agar mudah dipilih di bagian atas dropdown
         return result.distinct().sortedWith(
             compareBy<String>(
                 { modelPriorityRank(it) },
@@ -228,7 +336,12 @@ class GeminiClient {
         return gson.toJson(root)
     }
 
-    private fun parseSuccessResponse(rawBody: String): GeminiResult {
+    private fun parseSuccessResponse(
+        rawBody: String,
+        usedModelId: String,
+        fallbackNotice: String? = null,
+        discoveredModels: List<String>? = null
+    ): GeminiResult {
         if (rawBody.isBlank()) {
             return GeminiResult.Error("Server Gemini mengembalikan respons kosong.")
         }
@@ -269,10 +382,15 @@ class GeminiClient {
             if (finalText.isEmpty()) {
                 val finishReason = firstCandidate.get("finishReason")?.asString
                 GeminiResult.Error(
-                    "Jawaban kosong dari model.${if (finishReason != null) " (Alasan: $finishReason)" else ""}"
+                    "Jawaban kosong dari model \"$usedModelId\".${if (finishReason != null) " (Alasan: $finishReason)" else ""}"
                 )
             } else {
-                GeminiResult.Success(finalText)
+                GeminiResult.Success(
+                    text = finalText,
+                    usedModelId = usedModelId,
+                    fallbackNotice = fallbackNotice,
+                    discoveredModels = discoveredModels
+                )
             }
         } catch (e: Exception) {
             GeminiResult.Error("Gagal membaca format JSON dari Gemini: ${e.localizedMessage ?: "Parse error"}.")
@@ -294,8 +412,8 @@ class GeminiClient {
         val suffix = if (detail.isNotBlank()) "\n\nDetail server: $detail" else ""
         return when (code) {
             400 -> "Error 400 (Permintaan Tidak Valid).\nPeriksa kembali konfigurasi API Key atau model \"$modelId\".$suffix"
-            401, 403 -> "Error $code (API Key Ditolak).\nGEMINI_API_KEY tidak valid atau tidak memiliki akses ke model \"$modelId\".$suffix"
-            404 -> "Error 404 (Model Tidak Ditemukan).\nModel \"$modelId\" tidak tersedia di endpoint publik Gemini REST API. Pilih model lain pada dropdown.$suffix"
+            401, 403 -> "Error $code (API Key Ditolak).\nGemini API Key tidak valid atau tidak memiliki akses ke model \"$modelId\".$suffix"
+            404 -> "Error 404 (Model Tidak Ditemukan).\nModel \"$modelId\" tidak tersedia di endpoint publik Gemini REST API. Tekan ikon Muat Ulang di layar utama untuk memuat daftar model valid.$suffix"
             429 -> "Error 429 (Kuota / Rate Limit Habis).\nBatas permintaan API tercapai. Tunggu sebentar atau ganti model lain.$suffix"
             in 500..599 -> "Error $code (Gangguan Server Gemini).\nServer Google Gemini sedang sibuk atau gangguan sementara. Coba lagi nanti.$suffix"
             else -> "Error HTTP $code saat memanggil model \"$modelId\".$suffix"

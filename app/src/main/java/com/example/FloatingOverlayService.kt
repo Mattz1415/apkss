@@ -704,7 +704,21 @@ class FloatingOverlayService : Service() {
         setLoadingState(false)
 
         when (result) {
-            is GeminiResult.Success -> showResponseText(result.text)
+            is GeminiResult.Success -> {
+                if (!result.discoveredModels.isNullOrEmpty()) {
+                    prefsManager.cachedModels = result.discoveredModels
+                }
+                if (result.usedModelId != modelId) {
+                    prefsManager.modelId = result.usedModelId
+                    tvActiveModel?.text = result.usedModelId
+                }
+                val displayText = if (!result.fallbackNotice.isNullOrBlank()) {
+                    "[${result.fallbackNotice}]\n\n${result.text}"
+                } else {
+                    result.text
+                }
+                showResponseText(displayText)
+            }
             is GeminiResult.Error -> showResponseText(result.message)
         }
     }

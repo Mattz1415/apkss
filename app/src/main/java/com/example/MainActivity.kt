@@ -64,6 +64,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        availableModels = prefsManager.cachedModels
+        selectedModelId = prefsManager.modelId
+        bindModelDropdown(availableModels, selectedModelId)
         updateApiStatusBadge()
         updatePermissionStatuses()
         updateServiceToggleUi(FloatingOverlayService.isRunning.value)
@@ -146,18 +149,20 @@ class MainActivity : AppCompatActivity() {
 
             when (val result = geminiClient.fetchAvailableModels(apiKey)) {
                 is ModelsResult.Success -> {
-                    availableModels = (result.models + PrefsManager.PINNED_MODELS).distinct()
+                    val liveModels = result.models
+                    availableModels = (liveModels + PrefsManager.PINNED_MODELS).distinct()
                     prefsManager.cachedModels = availableModels
-                    val typedModel = binding.dropdownModel.text?.toString()?.trim().orEmpty()
-                    if (typedModel.isNotEmpty()) {
-                        selectedModelId = typedModel
-                    } else if (!availableModels.contains(selectedModelId)) {
-                        selectedModelId = availableModels.first()
-                        prefsManager.modelId = selectedModelId
+
+                    val currentInput = binding.dropdownModel.text?.toString()?.trim().orEmpty()
+                    selectedModelId = when {
+                        currentInput.isNotEmpty() && liveModels.contains(currentInput) -> currentInput
+                        liveModels.contains(selectedModelId) -> selectedModelId
+                        else -> liveModels.first()
                     }
+                    prefsManager.modelId = selectedModelId
                     bindModelDropdown(availableModels, selectedModelId)
                     binding.tvModelSyncStatus.text =
-                        getString(R.string.status_models_synced, availableModels.size)
+                        getString(R.string.status_models_synced, liveModels.size)
                     notifyServiceSettingsChanged()
                 }
 
