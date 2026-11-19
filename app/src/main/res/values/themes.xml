@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.FloatingGeminiAI" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/ink_primary</item>
+        <item name="colorOnPrimary">@color/ink_inverse</item>
+        <item name="colorSecondary">@color/ink_primary</item>
+        <item name="colorOnSecondary">@color/ink_inverse</item>
+        <item name="android:colorBackground">@color/bg_canvas</item>
+        <item name="colorSurface">@color/bg_surface</item>
+        <item name="colorSurfaceContainer">@color/bg_surface_muted</item>
+        <item name="colorOnSurface">@color/ink_primary</item>
+        <item name="colorOnSurfaceVariant">@color/ink_secondary</item>
+        <item name="colorOutline">@color/border_strong</item>
+        <item name="android:fontFamily">@font/plus_jakarta_sans</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="Theme.FloatingGeminiAI.Overlay" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/ink_inverse</item>
+        <item name="colorOnPrimary">@color/ink_primary</item>
+        <item name="colorSurface">@color/overlay_panel_bg</item>
+        <item name="colorOnSurface">@color/ink_inverse</item>
+        <item name="android:fontFamily">@font/plus_jakarta_sans</item>
+    </style>
+
+    <style name="Widget.FloatingGemini.Switch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbTint">@color/switch_thumb_mono</item>
+        <item name="trackTint">@color/switch_track_mono</item>
+        <item name="trackDecorationTint">@color/switch_track_stroke_mono</item>
+    </style>
+</resources>

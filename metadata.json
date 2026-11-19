@@ -1,0 +1,6 @@
+{
+  "name": "Floating Gemini AI",
+  "description": "Asisten AI layar mengambang dengan Auto-Jawab layar, Gemini REST API fleksibel, dan sembunyi cepat ketuk 3x.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

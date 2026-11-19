@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Floating Gemini AI</string>
+    <string name="masthead_eyebrow">GEMINI OVERLAY // EDITION 01</string>
+    <string name="masthead_title">Floating Gemini</string>
+    <string name="app_subtitle">Asisten AI layar mengambang dengan Auto-Jawab instan.</string>
+
+    <!-- Status Badges -->
+    <string name="status_active">● AKTIF</string>
+    <string name="status_inactive">○ NONAKTIF</string>
+    <string name="status_granted">SIAP</string>
+    <string name="status_not_granted">PERLU IZIN</string>
+
+    <!-- Editorial Section Headers -->
+    <string name="section_01_index">01</string>
+    <string name="section_01_title">MODEL AI</string>
+    <string name="section_02_index">02</string>
+    <string name="section_02_title">GESTUR CEPAT</string>
+    <string name="section_03_index">03</string>
+    <string name="section_03_title">IZIN SISTEM</string>
+
+    <!-- Model Dropdown & API Status -->
+    <string name="label_select_model">Pilih Model Tersedia</string>
+    <string name="btn_refresh_models">Muat Ulang</string>
+    <string name="cd_refresh_models">Muat ulang daftar model tersedia dari Gemini API</string>
+    <string name="status_models_loading">Memuat daftar model dari Gemini API…</string>
+    <string name="status_models_synced">%1$d model tersedia dari API</string>
+    <string name="status_models_default">Menampilkan %1$d model standar • Atur GEMINI_API_KEY di panel Secrets AI Studio</string>
+    <string name="status_models_error">Gagal memuat daftar model: %1$s</string>
+    <string name="status_api_ready">API KEY TERKONFIGURASI</string>
+    <string name="status_api_missing">API KEY BELUM DIATUR</string>
+
+    <string name="hint_system_instruction">System Instruction</string>
+    <string name="default_model_id">gemini-2.5-flash</string>
+    <string name="default_system_instruction">Kamu adalah asisten AI pintar. Jawab pertanyaan, chat, atau soal di layar secara singkat, akurat, dan langsung ke intinya dalam bahasa Indonesia.</string>
+    <string name="btn_save_settings">Simpan Pengaturan</string>
+    <string name="msg_settings_saved">Pengaturan tersimpan</string>
+    <string name="msg_api_key_missing_secrets">GEMINI_API_KEY belum dikonfigurasi. Masukkan API Key Anda di panel Secrets AI Studio lalu bangun ulang aplikasi.</string>
+
+    <!-- Triple-Tap Settings -->
+    <string name="switch_triple_tap_title">Sembunyikan via Ketuk 3x</string>
+    <string name="switch_triple_tap_desc">Ketuk layar 3 kali cepat (jeda ≤ 400 ms) untuk menyembunyikan atau memunculkan overlay.</string>
+    <string name="switch_vibrate_title">Getar Halus saat Hide/Show</string>
+    <string name="switch_vibrate_desc">Umpan balik haptik singkat 30 ms tanpa notifikasi Toast.</string>
+
+    <!-- Permissions -->
+    <string name="perm_overlay_title">Tampil di Atas Aplikasi Lain</string>
+    <string name="perm_overlay_desc">Wajib agar bubble dan panel mengambang dapat tampil.</string>
+    <string name="perm_accessibility_title">Layanan Aksesibilitas</string>
+    <string name="perm_accessibility_desc">Membaca teks layar aplikasi lain untuk Auto Jawab Layar.</string>
+    <string name="perm_notification_title">Notifikasi Sistem</string>
+    <string name="perm_notification_desc">Kontrol cadangan Show/Hide dan kestabilan layanan latar.</string>
+    <string name="btn_grant_permission">Atur</string>
+    <string name="btn_permission_ok">Siap</string>
+
+    <!-- Main CTA -->
+    <string name="btn_start_floating">Aktifkan Floating AI</string>
+    <string name="btn_stop_floating">Matikan Floating AI</string>
+    <string name="msg_overlay_permission_needed">Aktifkan izin \"Tampil di atas aplikasi lain\" terlebih dahulu.</string>
+
+    <!-- Floating Panel UI -->
+    <string name="floating_title">Floating Gemini</string>
+    <string name="floating_input_hint">Tanya AI…</string>
+    <string name="floating_btn_auto_answer">Auto Jawab Layar</string>
+    <string name="floating_btn_copy">Salin</string>
+    <string name="floating_btn_copied">Tersalin</string>
+    <string name="floating_btn_clear">Bersihkan</string>
+    <string name="floating_placeholder_response">Ketuk \"Auto Jawab Layar\" untuk memindai teks di layar aktif, atau ketik pertanyaan manual di bawah.</string>
+    <string name="floating_loading_text">Memproses jawaban…</string>
+    <string name="floating_scanning_screen">Memindai teks layar…</string>
+    <string name="floating_accessibility_missing">Layanan Aksesibilitas belum aktif.\n\nBuka Floating Gemini AI → aktifkan Layanan Aksesibilitas untuk menggunakan Auto Jawab Layar.</string>
+    <string name="floating_screen_empty">Tidak ada teks terbaca di layar saat ini. Pastikan konten terlihat lalu coba lagi.</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_app_logo">Logo Floating Gemini AI</string>
+    <string name="cd_ai_bubble">Buka panel Floating Gemini AI</string>
+    <string name="cd_minimize_panel">Kecilkan ke ikon bubble</string>
+    <string name="cd_close_service">Tutup dan matikan Floating AI</string>
+    <string name="cd_send_prompt">Kirim pertanyaan ke Gemini</string>
+    <string name="cd_copy_answer">Salin jawaban AI</string>
+    <string name="cd_clear_answer">Bersihkan jawaban AI</string>
+
+    <!-- Accessibility Service Metadata -->
+    <string name="accessibility_service_label">Floating Gemini AI – Pembaca Layar</string>
+    <string name="accessibility_service_description">Membaca teks yang tampil di layar aplikasi lain hanya saat Anda menekan tombol Auto Jawab Layar pada panel Floating Gemini AI.</string>
+
+    <!-- Foreground Notification -->
+    <string name="notif_channel_id">floating_gemini_overlay_channel</string>
+    <string name="notif_channel_name">Layanan Floating Gemini AI</string>
+    <string name="notif_channel_desc">Menjaga asisten AI mengambang tetap berjalan dan menyediakan pintasan Show/Hide.</string>
+    <string name="notif_title">Floating Gemini AI Aktif</string>
+    <string name="notif_text_visible">Overlay tampil • Ketuk layar 3x cepat untuk sembunyikan</string>
+    <string name="notif_text_hidden">Overlay tersembunyi • Ketuk 3x cepat atau tekan Tampilkan</string>
+    <string name="notif_action_hide">Sembunyikan</string>
+    <string name="notif_action_show">Tampilkan</string>
+    <string name="notif_action_stop">Matikan</string>
+</resources>
