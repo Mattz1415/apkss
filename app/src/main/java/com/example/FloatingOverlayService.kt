@@ -687,7 +687,7 @@ class FloatingOverlayService : Service() {
     }
 
     private suspend fun executeGeminiQueryInternal(prompt: String) {
-        val apiKey = prefsManager.getConfiguredApiKey()
+        val apiKey = prefsManager.getEffectiveApiKey()
         val modelId = prefsManager.modelId
         val systemInstruction = prefsManager.systemInstruction
 

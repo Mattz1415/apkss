@@ -150,22 +150,56 @@
                         android:id="@+id/tvApiKeyBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_pill_granted"
+                        android:background="@drawable/bg_pill_denied"
                         android:fontFamily="@font/jetbrains_mono"
                         android:letterSpacing="0.04"
                         android:paddingHorizontal="8dp"
                         android:paddingVertical="3dp"
-                        android:text="@string/status_api_ready"
-                        android:textColor="@color/ink_inverse"
+                        android:text="@string/status_api_missing"
+                        android:textColor="@color/ink_primary"
                         android:textSize="9sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+
+                <!-- Input Gemini API Key (Monochrome Hairline + Show/Hide Toggle) -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilApiKey"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:hint="@string/hint_api_key"
+                    app:boxBackgroundColor="@color/bg_surface_muted"
+                    app:boxCornerRadiusBottomEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusTopStart="12dp"
+                    app:boxStrokeColor="@color/border_ink"
+                    app:boxStrokeWidth="1dp"
+                    app:boxStrokeWidthFocused="1.5dp"
+                    app:endIconMode="password_toggle"
+                    app:endIconTint="@color/ink_primary"
+                    app:helperText="@string/helper_api_key"
+                    app:helperTextTextColor="@color/ink_muted"
+                    app:hintTextColor="@color/ink_secondary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etApiKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/jetbrains_mono"
+                        android:imeOptions="actionDone"
+                        android:inputType="textPassword"
+                        android:maxLines="1"
+                        android:textColor="@color/ink_primary"
+                        android:textSize="13sp" />
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Dropdown Pilihan Model Tersedia + Refresh Button -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginTop="12dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -192,7 +226,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/jetbrains_mono"
-                            android:inputType="none"
+                            android:inputType="textNoSuggestions"
                             android:maxLines="1"
                             android:textColor="@color/ink_primary"
                             android:textSize="13sp"

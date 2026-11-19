@@ -85,6 +85,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadSavedSettings() {
+        binding.etApiKey.setText(prefsManager.apiKey)
+
         availableModels = prefsManager.cachedModels
         selectedModelId = prefsManager.modelId
         if (!availableModels.contains(selectedModelId)) {
@@ -100,13 +102,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bindModelDropdown(models: List<String>, currentSelection: String) {
-        val adapter = ArrayAdapter(this, R.layout.item_model_dropdown, models)
+        val fullList = (models + PrefsManager.PINNED_MODELS).distinct()
+        val adapter = object : ArrayAdapter<String>(this, R.layout.item_model_dropdown, fullList) {
+            private val noFilter = object : android.widget.Filter() {
+                override fun performFiltering(constraint: CharSequence?): FilterResults {
+                    return FilterResults().apply {
+                        values = fullList
+                        count = fullList.size
+                    }
+                }
+
+                override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                    notifyDataSetChanged()
+                }
+            }
+
+            override fun getFilter(): android.widget.Filter = noFilter
+        }
         binding.dropdownModel.setAdapter(adapter)
         binding.dropdownModel.setText(currentSelection, false)
     }
 
     private fun syncAvailableModelsFromApi() {
-        val apiKey = prefsManager.getConfiguredApiKey()
+        val typedKey = binding.etApiKey.text?.toString()?.trim().orEmpty()
+        if (typedKey.isNotEmpty() && typedKey != prefsManager.apiKey) {
+            prefsManager.apiKey = typedKey
+        }
+        updateApiStatusBadge()
+
+        val apiKey = prefsManager.getEffectiveApiKey()
         if (apiKey.isEmpty()) {
             binding.progressModels.visibility = View.GONE
             binding.tvModelSyncStatus.text =
@@ -122,9 +146,12 @@ class MainActivity : AppCompatActivity() {
 
             when (val result = geminiClient.fetchAvailableModels(apiKey)) {
                 is ModelsResult.Success -> {
-                    availableModels = result.models
+                    availableModels = (result.models + PrefsManager.PINNED_MODELS).distinct()
                     prefsManager.cachedModels = availableModels
-                    if (!availableModels.contains(selectedModelId)) {
+                    val typedModel = binding.dropdownModel.text?.toString()?.trim().orEmpty()
+                    if (typedModel.isNotEmpty()) {
+                        selectedModelId = typedModel
+                    } else if (!availableModels.contains(selectedModelId)) {
                         selectedModelId = availableModels.first()
                         prefsManager.modelId = selectedModelId
                     }
@@ -147,11 +174,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateApiStatusBadge() {
-        val hasKey = prefsManager.hasValidConfiguredApiKey()
+        val hasKey = prefsManager.hasValidApiKey()
         if (hasKey) {
             binding.tvApiKeyBadge.text = getString(R.string.status_api_ready)
             binding.tvApiKeyBadge.setTextColor(ContextCompat.getColor(this, R.color.ink_inverse))
             binding.tvApiKeyBadge.setBackgroundResource(R.drawable.bg_pill_granted)
+            binding.tilApiKey.error = null
         } else {
             binding.tvApiKeyBadge.text = getString(R.string.status_api_missing)
             binding.tvApiKeyBadge.setTextColor(ContextCompat.getColor(this, R.color.ink_primary))
@@ -159,16 +187,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveInputSettings(showConfirmation: Boolean) {
+    private fun saveInputSettings(showConfirmation: Boolean, syncModelsIfKeyChanged: Boolean = false) {
+        val previousKey = prefsManager.apiKey
+        val newApiKey = binding.etApiKey.text?.toString()?.trim().orEmpty()
+        val typedModel = binding.dropdownModel.text?.toString()?.trim()
+            .takeUnless { it.isNullOrEmpty() } ?: selectedModelId
         val systemInstruction = binding.etSystemInstruction.text?.toString()?.trim()
             .takeUnless { it.isNullOrEmpty() } ?: PrefsManager.DEFAULT_SYSTEM_INSTRUCTION
 
+        selectedModelId = typedModel
+        prefsManager.apiKey = newApiKey
         prefsManager.modelId = selectedModelId
         prefsManager.systemInstruction = systemInstruction
         prefsManager.isTripleTapEnabled = binding.switchTripleTap.isChecked
         prefsManager.isTripleTapVibrateEnabled = binding.switchVibrate.isChecked
 
+        updateApiStatusBadge()
         notifyServiceSettingsChanged()
+
+        if (syncModelsIfKeyChanged && newApiKey.isNotEmpty() && newApiKey != previousKey) {
+            syncAvailableModelsFromApi()
+        }
 
         if (showConfirmation) {
             Toast.makeText(this, R.string.msg_settings_saved, Toast.LENGTH_SHORT).show()
@@ -196,11 +235,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnRefreshModels.setOnClickListener {
+            saveInputSettings(showConfirmation = false)
             syncAvailableModelsFromApi()
         }
 
         binding.btnSaveSettings.setOnClickListener {
-            saveInputSettings(showConfirmation = true)
+            saveInputSettings(showConfirmation = true, syncModelsIfKeyChanged = true)
         }
 
         binding.switchTripleTap.setOnCheckedChangeListener { _, isChecked ->
@@ -264,9 +304,12 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        if (!prefsManager.hasValidConfiguredApiKey()) {
-            Toast.makeText(this, R.string.msg_api_key_missing_secrets, Toast.LENGTH_LONG).show()
+        if (!prefsManager.hasValidApiKey()) {
+            binding.tilApiKey.error = getString(R.string.msg_api_key_required)
+            Toast.makeText(this, R.string.msg_api_key_required, Toast.LENGTH_LONG).show()
             return
+        } else {
+            binding.tilApiKey.error = null
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission()) {

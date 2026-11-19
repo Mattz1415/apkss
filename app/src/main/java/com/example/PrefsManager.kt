@@ -8,16 +8,22 @@ class PrefsManager(context: Context) {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+    var apiKey: String
+        get() = prefs.getString(KEY_API_KEY, "")?.trim().orEmpty()
+        set(value) = prefs.edit().putString(KEY_API_KEY, value.trim()).apply()
+
     /**
-     * Mengambil GEMINI_API_KEY dari BuildConfig yang disuntikkan melalui Secrets Gradle Plugin (.env).
-     * Mengembalikan string kosong bila masih berupa placeholder default.
+     * Mengembalikan API Key dari input pengguna (SharedPreferences),
+     * atau fallback ke BuildConfig.GEMINI_API_KEY bila telah dikonfigurasi lewat Secrets.
      */
-    fun getConfiguredApiKey(): String {
-        val raw = BuildConfig.GEMINI_API_KEY.trim()
-        return if (raw.isEmpty() || raw == PLACEHOLDER_API_KEY) "" else raw
+    fun getEffectiveApiKey(): String {
+        val localKey = apiKey
+        if (localKey.isNotEmpty()) return localKey
+        val buildConfigKey = BuildConfig.GEMINI_API_KEY.trim()
+        return if (buildConfigKey.isEmpty() || buildConfigKey == PLACEHOLDER_API_KEY) "" else buildConfigKey
     }
 
-    fun hasValidConfiguredApiKey(): Boolean = getConfiguredApiKey().isNotEmpty()
+    fun hasValidApiKey(): Boolean = getEffectiveApiKey().isNotEmpty()
 
     var modelId: String
         get() = prefs.getString(KEY_MODEL_ID, DEFAULT_MODEL_ID)?.trim()
@@ -34,10 +40,11 @@ class PrefsManager(context: Context) {
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
                 .distinct()
-            return parsed.ifEmpty { DEFAULT_AVAILABLE_MODELS }
+            val base = parsed.ifEmpty { DEFAULT_AVAILABLE_MODELS }
+            return (base + PINNED_MODELS).distinct()
         }
         set(value) {
-            val cleaned = value.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+            val cleaned = (value + PINNED_MODELS).map { it.trim() }.filter { it.isNotEmpty() }.distinct()
             if (cleaned.isNotEmpty()) {
                 prefs.edit().putString(KEY_CACHED_MODELS, cleaned.joinToString("\n")).apply()
             }
@@ -66,6 +73,7 @@ class PrefsManager(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "floating_gemini_ai_prefs"
+        private const val KEY_API_KEY = "gemini_api_key"
         private const val KEY_MODEL_ID = "gemini_model_id"
         private const val KEY_CACHED_MODELS = "gemini_cached_models"
         private const val KEY_SYSTEM_INSTRUCTION = "gemini_system_instruction"
@@ -77,12 +85,14 @@ class PrefsManager(context: Context) {
         private const val PLACEHOLDER_API_KEY = "MY_GEMINI_API_KEY"
 
         const val DEFAULT_MODEL_ID = "gemini-2.5-flash"
+        val PINNED_MODELS: List<String> = listOf("hydrogen")
         val DEFAULT_AVAILABLE_MODELS: List<String> = listOf(
             "gemini-2.5-flash",
             "gemini-2.5-pro",
             "gemini-2.5-flash-lite",
             "gemini-2.0-flash",
-            "gemini-2.0-flash-lite"
+            "gemini-2.0-flash-lite",
+            "hydrogen"
         )
         const val DEFAULT_SYSTEM_INSTRUCTION =
             "Kamu adalah asisten AI pintar. Jawab pertanyaan, chat, atau soal di layar secara singkat, akurat, dan langsung ke intinya dalam bahasa Indonesia."

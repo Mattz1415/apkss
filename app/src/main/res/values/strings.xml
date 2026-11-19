@@ -19,23 +19,25 @@
     <string name="section_03_index">03</string>
     <string name="section_03_title">IZIN SISTEM</string>
 
-    <!-- Model Dropdown & API Status -->
+    <!-- Model Dropdown & API Key Input -->
+    <string name="hint_api_key">Gemini API Key</string>
+    <string name="helper_api_key">Disimpan lokal di perangkat Anda. Ketuk Muat Ulang untuk memuat daftar model.</string>
     <string name="label_select_model">Pilih Model Tersedia</string>
     <string name="btn_refresh_models">Muat Ulang</string>
     <string name="cd_refresh_models">Muat ulang daftar model tersedia dari Gemini API</string>
     <string name="status_models_loading">Memuat daftar model dari Gemini API…</string>
-    <string name="status_models_synced">%1$d model tersedia dari API</string>
-    <string name="status_models_default">Menampilkan %1$d model standar • Atur GEMINI_API_KEY di panel Secrets AI Studio</string>
+    <string name="status_models_synced">%1$d model tersedia dari API Key Anda</string>
+    <string name="status_models_default">Menampilkan %1$d model standar • Isi API Key lalu ketuk ikon refresh untuk sinkronisasi</string>
     <string name="status_models_error">Gagal memuat daftar model: %1$s</string>
-    <string name="status_api_ready">API KEY TERKONFIGURASI</string>
-    <string name="status_api_missing">API KEY BELUM DIATUR</string>
+    <string name="status_api_ready">API KEY SIAP</string>
+    <string name="status_api_missing">BELUM DIISI</string>
 
     <string name="hint_system_instruction">System Instruction</string>
     <string name="default_model_id">gemini-2.5-flash</string>
     <string name="default_system_instruction">Kamu adalah asisten AI pintar. Jawab pertanyaan, chat, atau soal di layar secara singkat, akurat, dan langsung ke intinya dalam bahasa Indonesia.</string>
     <string name="btn_save_settings">Simpan Pengaturan</string>
     <string name="msg_settings_saved">Pengaturan tersimpan</string>
-    <string name="msg_api_key_missing_secrets">GEMINI_API_KEY belum dikonfigurasi. Masukkan API Key Anda di panel Secrets AI Studio lalu bangun ulang aplikasi.</string>
+    <string name="msg_api_key_required">Masukkan Gemini API Key terlebih dahulu sebelum mengaktifkan Floating AI.</string>
 
     <!-- Triple-Tap Settings -->
     <string name="switch_triple_tap_title">Sembunyikan via Ketuk 3x</string>
